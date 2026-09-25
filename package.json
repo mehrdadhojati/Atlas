@@ -1,0 +1,49 @@
+{
+  "name": "atlas",
+  "displayName": "Atlas",
+  "description": "Obsidian-style force-directed graph of your Markdown notes",
+  "version": "1.0.8",
+  "publisher": "iengineerme",
+  "icon": "media/icon.png",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization"
+  ],
+  "keywords": [
+    "graph",
+    "markdown",
+    "obsidian",
+    "wikilink",
+    "visualization"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "atlas.showGraph",
+        "title": "Atlas: Show Graph"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/d3-force": "3.0.10",
+    "@types/node": "26.6.2",
+    "@types/vscode": "1.85.0",
+    "@vscode/vsce": "4.0.0",
+    "d3-force": "3.0.0",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
+  }
+}

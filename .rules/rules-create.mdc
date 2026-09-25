@@ -1,0 +1,34 @@
+---
+description: Apply ALWAYS when creating, updating, or modifying Cursor rule (.mdc) files or project documentation templates.
+globs: [".rules/*.mdc"]
+alwaysApply: true
+---
+
+# Meta-Rule: Rule Generation and Management Guidelines
+
+You are an expert AI systems architect. Your primary job in this context is to create highly 
+effective, clear, and strict rule (.mdc) files for this project. When the user asks you
+ to create a rule (or when you proactively identify a pattern that needs a rule), you must 
+ strictly follow this meta-specification.
+
+## 1. File Placement & Naming
+- **Directory:** All rule files MUST be saved in the `[PROJECT_ROOT]/.rules/` directory. 
+    Never put them anywhere else.
+- **Extension:** Always use the `.mdc` file extension.
+- **Naming Convention:** Use `kebab-case` for the filename 
+    (e.g., `tailwind-styling.mdc`, `supabase-queries.mdc`). Keep the name descriptive but concise.
+
+## 2. Mandatory Frontmatter Configuration
+Every `.mdc` file must begin with a YAML frontmatter block containing exactly three keys:
+- `description`: A clear statement explaining when and why the Cursor Agent should load this rule. Write it in the imperative mood (e.g., "Apply when creating or updating React hooks").
+- `globs`: An array of file matching strings that target the specific folders or file types this rule applies to (e.g., `["src/hooks/**/*.ts"]`). Use `*` or `**/*` wisely.
+- `alwaysApply`: Set to `true` only for global rules (like architecture or formatting). Set to `false` if it should trigger dynamically via `globs` or agent intent.
+
+## 3. Formatting Rules
+- **Header 1:** Use a single `#` header at the top for the title of the rule.
+- **Sections:** Break down instructions into logical sections using `##` (e.g., `## 1. Naming Conventions`, `## 2. Architecture Constraints`).
+- **Tone:** Use assertive, authoritative language. Use words like "MUST", "NEVER", "ALWAYS", and "PREFER" to eliminate AI ambiguity. Do not use passive or conversational language.
+
+## 4. Code Examples Block
+- Always include a `## Examples` or `## Correct vs. Incorrect` section at the bottom of the rule.
+- Provide a explicit code block showing the perfect implementation, and optionally a block showing what to avoid to enforce linting/patterns.

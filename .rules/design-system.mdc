@@ -1,0 +1,73 @@
+---
+description: Apply when creating or modifying webview UI, Canvas rendering, graph interactions, or any user-facing element.
+globs: ["**/webview/**/*.ts", "**/webview/**/*.html", "**/webview/**/*.css"]
+alwaysApply: false
+---
+
+# Design System
+
+## 1. Presentation Pattern
+
+- The webview UI MUST separate **data/rendering logic** (Canvas + d3 simulation) from
+  **state/controls** (hover selection, zoom, pan).
+- The `GraphRenderer` owns drawing and simulation; controls own interaction state. Keep
+  DOM manipulation out of simulation code.
+- The renderer MUST consume the plain `GraphData { nodes, edges }` JSON shape — never
+  extension-host objects.
+
+## 2. Rendering
+
+- Draw the graph on a single HTML `<canvas>` using `requestAnimationFrame` and the
+  `d3-force` simulation tick.
+- Nodes and links MUST be drawn every frame (links always visible, as in Obsidian).
+- Dragging a node re-heats the simulation so neighbors re-arrange; releasing it re-cools
+  to equilibrium.
+- Use `devicePixelRatio` scaling to avoid blurry rendering on HiDPI displays.
+
+## 3. Theming
+
+- NEVER hardcode colors. MUST use VS Code theme variables:
+  - `var(--vscode-editor-foreground)` for node text
+  - `var(--vscode-editorBackground)` for canvas background
+  - `var(--vscode-focusBorder)` for selection/highlight
+  - `var(--vscode-textLink-foreground)` for links
+- Listen for theme changes via `vscode.postMessage({ type: "themeChanged" })` and redraw.
+- Centralize reusable color/stroke constants in one module; do not scatter literals.
+
+## 4. Interaction Conventions
+
+- **Click node** → post `openNode` to the extension.
+- **Hover node** → highlight it and its neighbors; dim unrelated nodes.
+- **Drag node** → pin it and re-run simulation around it.
+- **Wheel** → zoom; **drag background** → pan. Keep these concerns in dedicated
+  handlers, not inline in the render loop.
+
+## 5. Accessibility & Layout
+
+- Provide a minimum touch/click target size for node hit-testing.
+- Text that wraps or may overflow MUST be clamped (`ctx.measureText` + ellipsis), never
+  drawn off-canvas.
+
+## Examples
+
+### Correct — theme-aware rendering
+
+```ts
+const color = getComputedStyle(document.body)
+  .getPropertyValue("--vscode-editor-foreground");
+```
+
+### Incorrect — NEVER do these
+
+```ts
+// Bad: hardcoded colors
+ctx.fillStyle = "#ffffff";
+```
+
+```ts
+// Bad: business/simulation logic mixed into the render loop
+function tick() {
+  simulation.tick();
+  fetchNoteIds().forEach(...); // side effect in draw path
+}
+```

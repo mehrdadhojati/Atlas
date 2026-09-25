@@ -1,0 +1,103 @@
+---
+description: Apply ALWAYS when designing or modifying the solution structure, module boundaries, dependency direction, or introducing new layers, ports, or adapters.
+globs: ["**/*.ts", "**/package.json", "**/tsconfig.json"]
+alwaysApply: true
+---
+
+# Architecture Design
+
+## 1. Architectural Style
+
+The solution MUST follow a **layered architecture** with dependencies pointing inward.
+The **domain** layer is the innermost core and depends on nothing (no `vscode`, no Node
+modules). Frameworks and side effects live at the edge.
+
+Layers (top → bottom, inward dependency direction):
+
+```
+src/extension       Composition root + VS Code host (entry, activation, wiring)
+src/infrastructure  Adapters: FileRepository, VSCodeAdapter, MessageBus
+src/application     Use cases / orchestration: GraphService
+src/domain          Pure model: Node, Edge, MarkdownParser, GraphModel  ← nothing
+src/webview         Presentation: GraphRenderer, controls (browser sandbox)
+```
+
+## 2. Module Structure
+
+| Module | Responsibility | Depends on |
+|---|---|---|
+| `src/domain` | Graph model, MarkdownParser, pure transforms | nothing |
+| `src/application` | `GraphService` (build/index graph, use cases) | domain |
+| `src/infrastructure` | `FileRepository` (glob+read), `VSCodeAdapter` (open file), `MessageBus` | domain, vscode |
+| `src/extension` | activation, command registration, composition root | all |
+| `src/webview` | `GraphRenderer`, d3-force simulation, UI | none (isolated sandbox) |
+
+## 3. Dependency Rule
+
+- `src/domain` MUST NOT import `vscode`, `fs`, `d3`, or any framework package. It is pure
+  and unit-testable in isolation.
+- Dependencies MUST point inward only. `application` MUST NOT import `extension`;
+  `domain` MUST NOT import `infrastructure`.
+- Only `src/extension` (the composition root) MAY wire concrete implementations together.
+- The webview is a separate process/sandbox. It receives plain JSON (`GraphData`) and
+  NEVER imports extension-host code or Node modules.
+
+## 4. Ports & Adapters
+
+- **Domain** owns domain-capability ports (e.g., `LinkExtractor`, `GraphModel`).
+- **Application** owns persistence ports (`FileRepository` interface) — file access is a
+  use-case concern, not a domain rule.
+- Interfaces are owned by the layer that CONSUMES them. Do not create a shared
+  "abstractions" folder.
+- Adapters (`infrastructure`) implement the ports. All `vscode`/`fs` usage lives ONLY in
+  `infrastructure` and `extension`.
+
+## 5. Composition Root & Dependency Injection
+
+- All wiring happens in `src/extension` (activation). No module resolves its own
+  dependencies via `new` where injection is appropriate.
+- Concrete implementations are registered against their port interfaces (constructor
+  injection; no DI container required at this scale).
+
+## 6. Host ↔ Webview Communication
+
+- Communication uses a typed **message bus** (`{ type, payload }`), never raw strings.
+- Extension → webview: `graphData`, `themeChanged`.
+- Webview → extension: `openNode`, `revealNode`, `ready`.
+- The webview receives data as plain JSON; it MUST NOT hold live `vscode` objects.
+
+## 7. Extensibility (Open/Closed)
+
+- Adding a link type (wikilink, tag, md-link) MUST require registering a new
+  `LinkExtractor` strategy, NEVER modifying the parser core.
+- Adding a renderer behavior MUST not require changes to `GraphService`.
+
+## Examples
+
+### Correct — pure domain, framework-free
+
+```ts
+// domain/linkExtractor.ts — no imports
+export interface LinkExtractor {
+  extract(content: string, source: string): Edge[];
+}
+```
+
+### Correct — adapter owns framework types
+
+```ts
+// infrastructure/vscodeAdapter.ts
+import * as vscode from "vscode";
+export class VSCodeAdapter {
+  openNote(path: string): void {
+    void vscode.window.showTextDocument(vscode.Uri.file(path));
+  }
+}
+```
+
+### Incorrect — NEVER do these
+
+- `import * as vscode from "vscode"` inside `src/domain/`.
+- `import * as fs from "fs"` inside `src/application/` (use the `FileRepository` port).
+- A shared `src/abstractions/` folder holding every interface.
+- The webview importing `src/infrastructure/` or any Node module.

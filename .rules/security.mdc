@@ -1,0 +1,84 @@
+---
+description: Apply ALWAYS when implementing the webview, message handling, secrets/configuration, or any code that performs privileged or external actions.
+globs: ["**/*.ts", "**/*.json"]
+alwaysApply: true
+---
+
+# Security
+
+## 1. Webview Sandbox
+
+- The webview MUST run with the minimum required privileges:
+  - `enableScripts: true` ONLY if the UI needs it; `enableCommandUris` MUST remain
+    `false`.
+  - `localResourceRoots` MUST be restricted to the extension's own `media/` and
+    `webview/` folders — never the whole workspace or machine.
+- MUST NOT load remote content (no external scripts, styles, images, or iframes).
+- MUST NOT use `retainContextWhenHidden` unless required; prefer releasing webview
+  resources when hidden.
+
+## 2. Content Security Policy
+
+- The webview `index.html` MUST include a strict `Content-Security-Policy` `meta` tag:
+  `default-src 'none'; script-src 'nonce-<id>'; style-src 'nonce-<id>'; img-src ...` —
+  allowing only the extension's local resources.
+
+## 3. Untrusted Input & Output
+
+- Markdown file contents and note titles are UNTRUSTED. Treat them as data, not markup.
+- NEVER inject note titles or content into the webview via `innerHTML`. Use `textContent`
+  or canvas text drawing (`ctx.fillText`), which cannot execute HTML/JS.
+- Sanitize or escape any value before it reaches `postMessage` or the DOM.
+
+## 4. Secrets & Configuration
+
+- API keys, tokens, and credentials MUST live in VS Code configuration or environment
+  variables. They MUST NEVER be hardcoded in source.
+- Secrets MUST NEVER be committed to version control. Add them to `.gitignore`.
+
+## 5. Error Handling & Visibility
+
+- Fail fast and loud. A failed operation MUST surface an error; it MUST NOT be silently
+  ignored.
+- File operations MUST be bounded to the workspace and read-only unless the feature
+  explicitly writes (which v1 does not).
+
+## Examples
+
+### Correct — restricted webview with nonce
+
+```ts
+const panel = vscode.window.createWebviewPanel(
+  "atlas",
+  "Graph",
+  vscode.ViewColumn.One,
+  {
+    enableScripts: true,
+    enableCommandUris: false,
+    localResourceRoots: [vscode.Uri.joinPath(extensionUri, "media")],
+  }
+);
+```
+
+```html
+<meta
+  http-equiv="Content-Security-Policy"
+  content="default-src 'none'; script-src 'nonce-abc'; style-src 'nonce-abc';"
+/>
+```
+
+### Incorrect — NEVER do these
+
+```ts
+// Bad: unrestricted webview
+localResourceRoots: [vscode.Uri.file("C:/")];
+```
+
+```ts
+// Bad: injecting untrusted note title as HTML
+nodeEl.innerHTML = note.title;
+```
+
+```ts
+const apiKey = "sk-..."; // hardcoded secret
+```

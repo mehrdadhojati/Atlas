@@ -1,0 +1,93 @@
+---
+description: Apply ALWAYS when writing, reviewing, or modifying TypeScript code to enforce documentation, naming, and clarity standards.
+globs: ["**/*.ts"]
+alwaysApply: true
+---
+
+# Code Quality
+
+## 1. Mandatory Documentation
+
+Every exported type, function, and non-trivial member MUST carry a JSDoc description. A
+human reader MUST be able to understand what a unit does and how to use it WITHOUT
+reading its implementation.
+
+- **Exported types/interfaces** — MUST have a JSDoc `/** ... */` stating purpose and use.
+- **Exported functions/methods** — MUST document behavior, `@param`, and `@returns`
+  where applicable.
+- **Complex functions** — MUST add comments explaining the approach (the "why"), and
+  inline comments for non-obvious steps.
+- **Non-exported helpers** — MUST carry at least a concise description of purpose.
+
+```ts
+/**
+ * Extracts all `[[wikilink]]` targets from a Markdown document.
+ * Used to build graph edges between notes.
+ * @param content The raw Markdown text.
+ * @param source  The id of the note containing the link.
+ * @returns Edges from `source` to each linked note id.
+ */
+export function extractWikiLinks(content: string, source: string): Edge[] {
+  // ...
+}
+```
+
+## 2. Comment Philosophy
+
+- Comments MUST explain intent, rationale, and context ("why"), NEVER restate the code.
+- NEVER write redundant comments such as `// increment i` or `// create new object`.
+- Use inline comments sparingly, only where a line or block is genuinely non-obvious.
+- Prefer self-documenting names so comments carry the "why", not the "what".
+
+## 3. Naming Conventions
+
+- Types, interfaces, enums: `PascalCase`. Variables, functions, methods: `camelCase`.
+- Private fields: `_camelCase`. Constants: `UPPER_SNAKE_CASE`.
+- Names MUST be descriptive and unambiguous. NEVER use abbreviations or single-letter
+  names except for loop indices (`i`, `j`) and arrow-function parameters.
+- Boolean names MUST be affirmative (`isReady`, not `notReady`).
+
+## 4. Structure & Principles
+
+- **SOLID** — especially Single Responsibility and Dependency Inversion.
+- **DRY / YAGNI** — no duplicated logic; no speculative or dead code.
+- Functions MUST be small and single-purpose. A function doing more than one thing MUST
+  be split.
+- TypeScript strict mode MUST be enabled; avoid `any` — prefer `unknown` and narrow it.
+- Prefer `const` over `let`; never use `var`.
+
+## 5. Error Handling
+
+- Fail fast and loud: surface errors; NEVER swallow with an empty `catch`.
+- Adapter and boundary code MUST throw deliberately or return an explicit result; it
+  MUST NOT silently succeed after a failure.
+- Catch specific error types, not bare `catch`, unless at a boundary.
+
+## Examples
+
+### Correct — documented with rationale
+
+```ts
+/**
+ * Rebuilds the graph index from a set of Markdown files. The parser is pure so the
+ * result is deterministic and unit-testable without a VS Code host.
+ */
+export function buildGraph(files: ParsedFile[]): GraphModel {
+  // ...
+}
+```
+
+### Incorrect — NEVER do these
+
+```ts
+// Bad: no documentation, vague name, `any`
+function f(d: any) {
+  let x = 0; // set x to zero  <- restates the code
+  return x;
+}
+```
+
+```ts
+// Bad: empty catch swallows the failure
+try { risky(); } catch {}
+```

@@ -1,0 +1,67 @@
+---
+description: Apply ALWAYS when selecting, adding, or upgrading a third-party library or npm package.
+globs: ["**/package.json", "**/package-lock.json"]
+alwaysApply: true
+---
+
+# Library Selection
+
+## 1. Guiding Principle
+
+Prefer the minimal, official, stable option. A library MUST earn its place: the default
+answer to "do we need this package?" is NO unless justified.
+
+## 2. Selection Criteria
+
+- **Prefer official, stable packages** over experimental or community forks.
+- **Prefer the framework's native capability** over adding a package (e.g., use the VS
+  Code `vscode` API and webview `postMessage` before pulling in a helper library).
+- **Verify the exact API** against current docs or the package's source before coding
+  against it. NEVER assume an API from memory if it is not yet confirmed in the project.
+
+## 3. Decision Records
+
+- Every non-obvious package choice MUST be recorded as a TDR (technical decision) with
+  context, alternatives considered, and consequences.
+- A package that crosses an architectural boundary (e.g., into `src/domain`) MUST NEVER
+  be added — it violates the dependency rule (see architecture-design.mdc).
+
+## 4. Versioning & Dependencies
+
+- Pin exact versions in `package.json` (no `^`/`~`); the lockfile (`package-lock.json`)
+  is committed and authoritative.
+- Keep the transitive dependency graph small; reject packages that drag in heavy or
+  unexpected dependencies.
+
+## 5. YAGNI
+
+- NEVER add a package for a feature that is not yet needed (no speculative dependencies).
+- If a need is deferred (e.g., clustering, search), defer the package too and track it in
+  the backlog.
+
+## Examples
+
+### Correct — justified, pinned
+
+```json
+{
+  "dependencies": {
+    "d3-force": "3.0.0"
+  }
+}
+```
+
+### Incorrect — NEVER do these
+
+```json
+{
+  "dependencies": {
+    "some-random-helper": "^2.0.0"
+  }
+}
+```
+
+```ts
+// Bad: assuming an API from memory without confirming against the installed package
+import { forceSimulation } from "d3-force-unconfirmed";
+```

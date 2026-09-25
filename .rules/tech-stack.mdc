@@ -1,0 +1,63 @@
+---
+description: Apply ALWAYS when choosing languages, runtimes, libraries, or tooling for any part of the Atlas solution.
+globs: ["**/package.json", "**/tsconfig.json", "**/*.ts"]
+alwaysApply: true
+---
+
+# Tech Stack
+
+## 1. Approved Stack
+
+The solution MUST use this stack. Introducing anything outside it requires a decision
+(ADR/TDR) and an update to this rule.
+
+| Concern | Choice |
+|---|---|
+| Language | TypeScript (strict mode) — extension host and webview share the language |
+| Runtime | Node.js (VS Code extension host); webview runs in the browser sandbox |
+| Delivery | VS Code extension (`package.json` `contributes`) |
+| Graph rendering | `d3-force` (force simulation) drawn on an HTML `<canvas>` |
+| Graph data model | Plain TypeScript interfaces (`Node`, `Edge`) — no graph-library coupling |
+| Bundler | `esbuild` |
+| Package manager | `npm` |
+| Testing (domain layer) | `vitest` |
+| Linting / formatting | `eslint` + `prettier` |
+
+## 2. Target Environment
+
+- Extension host targets the current stable VS Code engine version declared in
+  `package.json` `engines.vscode`.
+- The webview targets the embedded Chromium runtime provided by VS Code. It MUST NOT
+  assume Node APIs are available inside the webview.
+
+## 3. Constraints
+
+- MUST NOT introduce a second graph library or a second bundler/package manager.
+- The domain layer MUST NOT import `vscode` or any Node-only module (see
+  architecture-design.mdc).
+- MUST NOT hardcode theme colors or model endpoints; read them from the active VS Code
+  theme (`--vscode-*` CSS variables) and configuration respectively.
+
+## 4. Model & Markdown Integration
+
+- Markdown link extraction (`[[wikilink]]`, `#tag`, `[label](path)`) is done by the
+  domain `MarkdownParser` — pure, no framework imports.
+- The graph is a projection of the parsed index; rendering details (canvas, d3) live
+  only in the webview.
+
+## Examples
+
+### Correct
+
+```ts
+// domain/parseMarkdown.ts — pure, no vscode import
+export function extractLinks(content: string): string[] {
+  return [...content.matchAll(/\[\[([^\]]+)\]\]/g)].map((m) => m[1]);
+}
+```
+
+### Incorrect — NEVER do these
+
+- `import * as vscode from "vscode"` inside `src/domain/`.
+- Adding `three.js` or `sigma` alongside `d3-force` without an ADR.
+- `import * as fs from "fs"` inside the webview script.
