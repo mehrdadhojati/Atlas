@@ -5,7 +5,7 @@ workspace. It parses `[[wikilinks]]`, `#tags`, and Markdown links into nodes and
 edges, draws them in a webview, and lets you drag nodes to rearrange their
 neighborhood and double-click through to open notes.
 
-<img src="https://api.iengineer.me/images/6b8b2ab394d846feaabdbcdbcbc996e3.png" alt="Atlas graph" width="800" />
+<img src="https://api.iengineer.me/images/ea57fa70cf3e404db7bcf70ee52cbde9.png" alt="Atlas graph" width="800" />
 
 ## Features
 
@@ -19,15 +19,17 @@ neighborhood and double-click through to open notes.
 - Node size scales with the number of connections
 - Auto-refreshes when Markdown files change
 - Follows the VS Code theme
+- Search documents with highlight functionality
 
 ## Installation
-- Until it's published on the VS Code Marketplace, you can build and install it manually via the Extensions tab.
+- Until it's published on the VS Code Marketplace, you can build it manually, or alternatively, go to **Releases** --> Download .VSIX file and install it via the **Extensions** tab in VS Code.
+- Might need to restart VS Code after installation
 
 ## Usage
 
 1. Open a workspace folder containing Markdown files.
 2. Run the command **Atlas: Show Graph** from the Command Palette. (Ctrl+Shift+P)
-3. Might need to restart VS Code after installation
+3. - Might need to restart VS Code after installation if encountered error on first run.
 
 ## Build --> .vsix
 

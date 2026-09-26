@@ -29,7 +29,7 @@ flowchart TD
 | `src/application` | `GraphService`, `FileRepository` port | domain |
 | `src/infrastructure` | `VSCodeFileRepository`, `VSCodeAdapter` | domain, vscode |
 | `src/extension` | activation, `GraphPanel`, composition root | all |
-| `src/webview` | `GraphRenderer` (d3-force on canvas) | none (sandbox) |
+| `src/webview` | `GraphRenderer` (d3-force on canvas), search overlay | none (sandbox) |
 
 ## Design Patterns
 

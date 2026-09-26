@@ -14,7 +14,7 @@ tags: [specification, atlas]
 |---|---|
 | Author | Mehrdad |
 | Status | accepted |
-| Version | 1.0.6 |
+| Version | 1.0.91 |
 | Created | 2026-09-26 |
 | Updated | 2026-09-26 |
 
@@ -31,6 +31,7 @@ defines the functional requirements the extension must satisfy.
 - Render an interactive force-directed graph in a webview.
 - Node dragging, hover/click highlight, zoom/pan.
 - Open a note from the graph.
+- Search notes by name and focus a result.
 
 **Out of scope:**
 - Editing notes inside the graph.
@@ -315,6 +316,34 @@ flowchart TD
 6. **Validation** — Clusters with 1–2 nodes fall back to a circle blob; degenerate hulls handled.
 7. **Exception Handling** — Non-numeric positions are skipped.
 
+### FR-13 [[Note Search]]
+1. **Requirements & Specification** — A rounded search box sits left of the version badge (opacity 0.7, full on focus); typing filters notes by display name (case-insensitive substring). Results list notes as `name — folder`. Enter or the search icon triggers selection; Up/Down navigate.
+2. **UI Design** — Search field + dropdown beneath it; folder shown dimmed; the active result is highlighted; hovering/arrowing previews a node without focusing.
+3. **System Design — DFD**
+```mermaid
+flowchart LR
+    A[Search input] --> B[performSearch]
+    B --> C[nodes filter]
+    C --> D[result list]
+    D --> E[selectSearchResult]
+    E --> F[focusNode]
+```
+4. **Workflow Diagram**
+```mermaid
+flowchart TD
+    I[input / icon] --> S[performSearch]
+    S --> M{matches?}
+    M -->|no| E[No results]
+    M -->|yes| L[render name - folder]
+    L --> H[arrow / hover]
+    H --> P[previewId highlight]
+    H --> C[enter / click]
+    C --> F[focusNode + center]
+```
+5. **Data Model & Message Contracts** — `searchMatches: GraphNode[]`, `searchIndex`, `previewId`; no new host↔webview messages.
+6. **Validation** — Query trimmed and lowercased; results capped at 50; empty query hides the list.
+7. **Exception Handling** — No matches shows a "No results" row; `previewId` is cleared on leave/select.
+
 ## 8. Data Requirements & Entities
 
 - `GraphData { nodes: GraphNode[], edges: GraphEdge[] }` — see [[Software Architecture]].
@@ -339,3 +368,4 @@ flowchart TD
 - Dragging, hover, click-focus, double-click open, zoom, and pan behave as specified.
 - File changes refresh the graph without reload.
 - The graph follows the active theme and shows the version badge.
+- Searching a note name lists matches (with folder) and selecting one focuses it.
