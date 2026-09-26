@@ -36,6 +36,18 @@ declare function acquireVsCodeApi(): { postMessage(message: unknown): void };
 const vscode = acquireVsCodeApi();
 
 const canvas = document.getElementById("graph") as HTMLCanvasElement;
+const searchInput = document.getElementById("search-input") as HTMLInputElement;
+const searchResults = document.getElementById("search-results") as HTMLUListElement;
+const searchIcon = document.querySelector(".search-icon") as SVGElement;
+const searchContainer = document.getElementById("search") as HTMLDivElement;
+
+/** Maximum number of matches shown to keep the dropdown usable. */
+const SEARCH_RESULT_LIMIT = 50;
+
+/** Nodes matching the current query, in display order. */
+let searchMatches: GraphNode[] = [];
+/** Index of the currently highlighted result (-1 when none). */
+let searchIndex = -1;
 
 function getContext(): CanvasRenderingContext2D {
   const ctx = canvas.getContext("2d");
@@ -50,6 +62,7 @@ let nodes: GraphNode[] = [];
 let links: GraphLink[] = [];
 let hoveredId: string | undefined;
 let focusedId: string | undefined;
+let previewId: string | undefined;
 let dragNodeId: string | undefined;
 let didDrag = false;
 
@@ -421,7 +434,7 @@ function draw(): void {
   context.stroke();
   context.globalAlpha = 1;
 
-  const activeId = hoveredId ?? focusedId;
+  const activeId = hoveredId ?? previewId ?? focusedId;
   const activeNeighbors = activeId ? neighborsOf(activeId) : new Set<string>();
 
   for (const node of nodes) {
@@ -459,6 +472,103 @@ function draw(): void {
 function frame(): void {
   draw();
   requestAnimationFrame(frame);
+}
+
+/**
+ * Persistently highlights a node and centers the viewport on it.
+ * @param node The node to focus.
+ */
+function focusNode(node: GraphNode): void {
+  focusedId = node.id;
+  if (typeof node.x === "number" && typeof node.y === "number") {
+    offsetX = -node.x * scale;
+    offsetY = -node.y * scale;
+  }
+}
+
+/**
+ * Returns the folder (parent path) containing a note, or `undefined` for
+ * tags and root-level notes. Used to disambiguate same-named notes.
+ */
+function folderOf(node: GraphNode): string | undefined {
+  if (node.group === "tag") return undefined;
+  const slash = node.id.lastIndexOf("/");
+  return slash === -1 ? undefined : node.id.slice(0, slash);
+}
+
+/**
+ * Highlights a result in the list and previews its node without focusing.
+ * @param index The result index to highlight.
+ */
+function setSearchIndex(index: number): void {
+  searchIndex = index;
+  previewId = searchMatches[index]?.id;
+  const items = searchResults.querySelectorAll<HTMLLIElement>("li:not(.empty)");
+  items.forEach((item, i) => item.classList.toggle("active", i === index));
+}
+
+/**
+ * Selects a result: focuses its node (persistent highlight + center) and
+ * closes the dropdown.
+ * @param index The result index to select.
+ */
+function selectSearchResult(index: number): void {
+  const node = searchMatches[index];
+  if (!node) return;
+  focusNode(node);
+  previewId = undefined;
+  searchResults.classList.remove("visible");
+}
+
+/**
+ * Filters nodes whose display name contains the query (case-insensitive,
+ * full or partial match) and renders the result list beneath the search box.
+ * Each result shows the note name followed by its containing folder.
+ */
+function performSearch(): void {
+  const query = searchInput.value.trim().toLowerCase();
+  searchResults.replaceChildren();
+  searchMatches = [];
+  searchIndex = -1;
+  previewId = undefined;
+
+  if (!query) {
+    searchResults.classList.remove("visible");
+    return;
+  }
+
+  searchMatches = nodes
+    .filter((node) => node.label.toLowerCase().includes(query))
+    .slice(0, SEARCH_RESULT_LIMIT);
+
+  if (searchMatches.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "empty";
+    empty.textContent = "No results";
+    searchResults.appendChild(empty);
+  } else {
+    searchMatches.forEach((node, index) => {
+      const item = document.createElement("li");
+      const label = document.createElement("span");
+      label.className = "result-label";
+      label.textContent = node.label;
+      item.appendChild(label);
+
+      const folder = folderOf(node);
+      if (folder) {
+        const folderSpan = document.createElement("span");
+        folderSpan.className = "result-folder";
+        folderSpan.textContent = ` \u2014 ${folder}`;
+        item.appendChild(folderSpan);
+      }
+
+      item.addEventListener("mouseenter", () => setSearchIndex(index));
+      item.addEventListener("click", () => selectSearchResult(index));
+      searchResults.appendChild(item);
+    });
+  }
+
+  searchResults.classList.add("visible");
 }
 
 canvas.addEventListener("mousedown", (event) => {
@@ -553,3 +663,41 @@ window.addEventListener("message", (event) => {
 
 vscode.postMessage({ type: "ready" });
 requestAnimationFrame(frame);
+
+searchInput.addEventListener("input", performSearch);
+searchInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    if (searchMatches.length > 0) {
+      selectSearchResult(searchIndex >= 0 ? searchIndex : 0);
+    }
+  } else if (event.key === "ArrowDown") {
+    event.preventDefault();
+    if (searchMatches.length > 0) {
+      const next = (searchIndex + 1) % searchMatches.length;
+      setSearchIndex(next);
+    }
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    if (searchMatches.length > 0) {
+      const next =
+        (searchIndex - 1 + searchMatches.length) % searchMatches.length;
+      setSearchIndex(next);
+    }
+  } else if (event.key === "Escape") {
+    searchResults.classList.remove("visible");
+    previewId = undefined;
+  }
+});
+searchIcon.addEventListener("click", () => {
+  performSearch();
+  searchInput.focus();
+});
+searchResults.addEventListener("mouseleave", () => {
+  previewId = undefined;
+});
+document.addEventListener("click", (event) => {
+  if (!searchContainer.contains(event.target as Node)) {
+    searchResults.classList.remove("visible");
+  }
+});

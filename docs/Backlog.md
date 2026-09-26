@@ -18,7 +18,6 @@ tags: [operational, atlas]
 
 ## Pending Implementation
 
-- [ ] Search and highligh node
 - [ ] Configurable node-sizing growth range.
 - [ ] Open the graph in a side view container instead of a webview panel.
 - [ ] Show/hide specific link types (wikilinks, tags, md links).

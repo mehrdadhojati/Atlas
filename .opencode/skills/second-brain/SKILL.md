@@ -10,7 +10,7 @@ in `docs/`). This skill provides the step-by-step "how".
 
 ## Docs root
 
-`C:\Mine\Programming\Grapher\docs`
+`C:\Mine\Programming\Atlas\docs`
 
 Always operate relative to this root. Read a file before editing it.
 

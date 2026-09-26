@@ -10,11 +10,9 @@ tags: [operational, atlas]
 
 ## Last Action
 
-Implemented folder clustering (soft cluster force + folder colors + convex-hull
-blobs) and updated the FSD with all 12 features, cross-linked to their docs (v1.0.6).
+Implemented the note search overlay (name match, folder display, arrow navigation,
+preview-vs-focus) in the webview and documented it as FR-13 with a feature doc.
 
 ## Next Actions
 
-- [ ] Reload the Extension Development Host to verify folder clustering. → [[Folder Clustering]]
-- [ ] Repackage `atlas-1.0.6.vsix` and reinstall. → [[Backlog]]
-- [ ] Verify double-click split behavior in a real window. → [[Double-click to Open]]
+
